@@ -34,6 +34,11 @@
   color: white;
   font-size: 16px;
   cursor: pointer;
+  transition: transform 0.2s ease, backgpround-color 0.2s ease;
+}
+.hero button:hover {
+   transform: translateY(-3px);
+  background-color: #1d4ed8;
 }
 
 .features {
@@ -179,15 +184,18 @@
   cursor: pointer;
   transition: transform 0.2s ease, backgpround-color 0.2s ease;
 }
-.assistant button:hover{
+
+.assistant button:hover {
   transform: translateY(-3px);
   background-color: #1d4ed8;
 }
+
 .assistant-description {
   color: #7c828a;
   margin-bottom: 1px;
   font-size: 18px;
 }
+
 .explanation {
   margin: 30px auto 0;
   max-width: 600px;
