@@ -82,6 +82,10 @@ function Navbar() {
         <a href="#features" onClick={() => setIsMenuOpen(false)}>
           Features
         </a>
+
+        <a href="#assistant" onClick={() => setIsMenuOpen(false)}>
+          Assistant
+        </a>
       </div>
     </nav>
   );
