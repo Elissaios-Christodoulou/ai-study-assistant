@@ -7,7 +7,7 @@
 }
 
 .hero {
-  min-height: 100vh;
+  min-height: 70vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -42,7 +42,8 @@
 }
 
 .features {
-  padding: 80px 40px;
+  min-height: 70vh;
+  padding: 80px 50px;
   text-align: center;
 }
 
@@ -143,11 +144,11 @@
 }
 
 .navbar {
-  background-color: #06205100;
+  background-color: #1b65ef00;
   justify-content: space-between;
   display: flex;
   align-items: center;
-  padding: 40px 30px;
+  padding: 25px 30px;
   position: relative;
   top: 0%;
 }
@@ -155,16 +156,19 @@
 .navbar a {
   text-decoration: none;
   padding: 7px;
-
+  color: rgb(176, 173, 173);
+  text-decoration: none;
 }
 
 .navbar a:hover {
   color: #4fa379;
+  opacity: 0.7;
 }
 
 .assistant {
   padding: 80px 40px;
   text-align: center;
+  min-height: 50vh;
 }
 
 .assistant input {
@@ -187,7 +191,7 @@
 
 .assistant button:hover {
   transform: translateY(-3px);
-  background-color: #1d4ed8;
+  background-color: #123bab;
 }
 
 .assistant-description {
