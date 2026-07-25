@@ -7,7 +7,7 @@
 }
 
 .hero {
-  min-height: 90vh;
+  min-height: 80vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -42,7 +42,7 @@
 }
 
 .features {
-  min-height: 70vh;
+  min-height: 80vh;
   padding: 80px 50px;
   text-align: center;
 }
