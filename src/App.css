@@ -178,7 +178,9 @@
   border: none;
   margin: 20px;
 }
-
+.assistant input:focus {
+  outline: 2px solid #2563eb;
+}
 .assistant button {
   padding: 12px 25px;
   border-radius: 8px;
@@ -186,12 +188,17 @@
   background-color: #2563eb;
   color: white;
   cursor: pointer;
-  transition: transform 0.2s ease, backgpround-color 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .assistant button:hover {
   transform: translateY(-3px);
   background-color: #123bab;
+}
+.assistant button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .assistant-description {
@@ -202,9 +209,70 @@
 
 .explanation {
   margin: 30px auto 0;
-  max-width: 600px;
-  padding: 20px;
+  max-width: 650px;
+  padding: 30px;
   background-color: #1e293b;
-  border-radius: 12px;
+  border-radius: 16px;
   color: white;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  animation: fadeIn 0.3s ease;
+}
+.explanation h3 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.explanation h4 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  color: #60a5fa;
+}
+
+.explanation ul {
+  padding-left: 20px;
+}
+
+.explanation li {
+  margin-bottom: 8px;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 700px;
+  margin: 30px auto;
+}
+
+.message {
+  padding: 14px 20px;
+  border-radius: 18px;
+  max-width: 70%;
+  color: white;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.message.user {
+  align-self: flex-end;
+  background-color: #2563eb;
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background-color: #1e293b;
+  border-bottom-left-radius: 4px;
+  border-block-end: 4px;
 }
