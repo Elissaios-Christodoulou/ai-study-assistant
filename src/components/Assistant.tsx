@@ -54,6 +54,8 @@ function Assistant() {
 
     const [messages, setMessages] = useState<Message[]>([]);
 
+    const [hasStartedChat, setHasStartedChat] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -62,10 +64,13 @@ function Assistant() {
         });
     }, [messages]);
 
-    const handleExplain = () => {
-        const cleanTopic = topic.trim().toLowerCase();
+    const handleExplain = async () => {
         if (topic.trim() === "") { return };
+
         setIsLoading(true);
+
+        setHasStartedChat(true);
+
         setMessages((prev) => [
             ...prev,
             {
@@ -73,64 +78,76 @@ function Assistant() {
                 text: topic
             }
         ]);
-        setTimeout(() => {
-            const answer = explanations[cleanTopic];
-            if (answer) {
-                setExplanation(answer);
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        role: "assistant",
-                        text: answer.text
-                    }
-                ]);
-            } else {
-                setExplanation(fallbackAnswer);
+        
+            try {
+                const response = await fetch("http://localhost:5000/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message: topic
+                    }),
+                });
+
+                const data = await response.json();
 
                 setMessages((prev) => [
                     ...prev,
                     {
                         role: "assistant",
-                        text: fallbackAnswer.text
+                        text: data.answer
                     }
                 ]);
-            };
 
+            } catch (error) {
+                console.log(error);
+                setMessages((prev) => [
+                ...prev,
+                {
+                    role: "assistant",
+                    text: "Something went wrong. Please try again."
+                }
+            ]);
+            }
 
             setIsLoading(false);
 
-            setTopic("");
-
-        }, 1500);
+    
 
     }
     const clearChat = () => {
         setMessages([]);
         setExplanation(null);
-    };
-
+        setHasStartedChat(false);
+    }; 
     return (
         <section id="assistant" className="assistant">
             <h2>AI Study Assistant</h2>
 
             <p className="assistant-description">Ask anything about a topic</p>
 
-            <input placeholder="Type a topic..." value={topic} onChange={(event) => setTopic(event.target.value)} />
-            
-            <button
-                onClick={handleExplain}
-                disabled={isLoading}
-            >{isLoading ? "Thinking..." : "Explain"}</button>
+            <div className={hasStartedChat ? "chat-input bottom" : "chat-input"}>
 
-            <button onClick={clearChat}>
-                Clear Chat
-            </button>
+                <input
+                    placeholder="Type a topic..."
+                    value={topic}
+                    onChange={(event) => setTopic(event.target.value)}
+                />
 
-            {isLoading && (
-                <div className="explanation">
-                    Thinking...
+                <div className="assistant-buttons">
+
+                    <button onClick={handleExplain}>
+                        {isLoading ? "Thinking..." : "Explain"}
+                    </button>
+
+                    <button onClick={clearChat}>
+                        Clear Chat
+                    </button>
+
                 </div>
-            )}
+
+            </div>
 
             <div className="messages">
                 {messages.map((message, index) => (
@@ -141,24 +158,7 @@ function Assistant() {
                 ))}
                 <div ref={messagesEndRef}></div>
             </div>
-            {explanation && (
-                <div className="explanation">
-                    <h3>{explanation?.title}</h3>
-
-                    <h4>Explanation</h4>
-                    <p>{explanation?.text}</p>
-
-                    <h4>Example</h4>
-                    <p>{explanation?.example}</p>
-
-                    <h4>Key points</h4>
-
-                    <ul>
-                        {explanation?.points.map((point) => (
-                            <li key={point}>{point}</li>
-                        ))}</ul>
-                </div>
-            )}
+            
         </section>
     )
 
