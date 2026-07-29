@@ -54,7 +54,7 @@ function Assistant() {
             text: cleanTopic
         };
 
-        const assistantMessage: Message = {
+        const assistantMessage: MessageType = {
             role: "assistant",
             text: ""
         };
