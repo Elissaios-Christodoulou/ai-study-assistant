@@ -1,40 +1,51 @@
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "./Sidebar";
-import type { Conversation, Message as MessageType } from "../types/chat";
+import type {
+    Conversation,
+    Message as MessageType
+} from "../types/chat";
 import ChatInput from "./ChatInput";
 import Chat from "./Chat";
 
 function Assistant() {
     const [topic, setTopic] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [conversations, setConversations] = useState<Conversation[]>(() => {
-        const savedConversations = localStorage.getItem("conversations");
 
-        if (!savedConversations) {
-            return [];
-        }
+    const [conversations, setConversations] =
+        useState<Conversation[]>(() => {
+            const savedConversations =
+                localStorage.getItem("conversations");
 
-        return JSON.parse(savedConversations);
-    });
+            if (!savedConversations) {
+                return [];
+            }
+
+            return JSON.parse(savedConversations);
+        });
+
+    const [activeConversationId, setActiveConversationId] =
+        useState<number | null>(null);
+
+    const [hasStartedChat, setHasStartedChat] =
+        useState(false);
+
+    const messagesEndRef =
+        useRef<HTMLDivElement>(null);
+
+    const activeConversation = conversations.find(
+        (conversation) =>
+            conversation.id === activeConversationId
+    );
+
+    const activeMessages =
+        activeConversation?.messages ?? [];
+
     useEffect(() => {
         localStorage.setItem(
             "conversations",
             JSON.stringify(conversations)
         );
     }, [conversations]);
-
-    const [activeConversationId, setActiveConversationId] =
-        useState<number | null>(null);
-
-    const [hasStartedChat, setHasStartedChat] = useState(false);
-
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const activeConversation = conversations.find(
-        (conversation) => conversation.id === activeConversationId
-    );
-
-    const activeMessages = activeConversation?.messages ?? [];
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({
@@ -106,44 +117,106 @@ function Assistant() {
             );
         }
 
-       const assistantText = await response.text();
-
-        setConversations((prev) =>
-            prev.map((conversation) => {
-                if (
-                    conversation.id !== conversationId
-                ) {
-                    return conversation;
+        try {
+            const response = await fetch(
+                "/api/ask",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body: JSON.stringify({
+                        messages: requestMessages
+                    })
                 }
+            );
 
-                const updatedMessages = [
-                    ...conversation.messages
-                ];
+            if (!response.ok) {
+                throw new Error(
+                    `Server error: ${response.status}`
+                );
+            }
 
-                const lastIndex =
-                    updatedMessages.length - 1;
+            const assistantText =
+                await response.text();
 
-                const lastMessage =
-                    updatedMessages[lastIndex];
+            setConversations((prev) =>
+                prev.map((conversation) => {
+                    if (
+                        conversation.id !== conversationId
+                    ) {
+                        return conversation;
+                    }
 
-                if (
-                    !lastMessage ||
-                    lastMessage.role !== "assistant"
-                ) {
-                    return conversation;
-                }
+                    const updatedMessages = [
+                        ...conversation.messages
+                    ];
 
-                updatedMessages[lastIndex] = {
-                    ...lastMessage,
-                    text: assistantText
-                };
+                    const lastIndex =
+                        updatedMessages.length - 1;
 
-                return {
-                    ...conversation,
-                    messages: updatedMessages
-                };
-            })
-        );
+                    const lastMessage =
+                        updatedMessages[lastIndex];
+
+                    if (
+                        !lastMessage ||
+                        lastMessage.role !== "assistant"
+                    ) {
+                        return conversation;
+                    }
+
+                    updatedMessages[lastIndex] = {
+                        ...lastMessage,
+                        text: assistantText
+                    };
+
+                    return {
+                        ...conversation,
+                        messages: updatedMessages
+                    };
+                })
+            );
+        } catch (error) {
+            console.error(error);
+
+            setConversations((prev) =>
+                prev.map((conversation) => {
+                    if (
+                        conversation.id !== conversationId
+                    ) {
+                        return conversation;
+                    }
+
+                    const updatedMessages = [
+                        ...conversation.messages
+                    ];
+
+                    const lastIndex =
+                        updatedMessages.length - 1;
+
+                    const lastMessage =
+                        updatedMessages[lastIndex];
+
+                    if (
+                        lastMessage?.role === "assistant"
+                    ) {
+                        updatedMessages[lastIndex] = {
+                            role: "assistant",
+                            text:
+                                "Something went wrong. Please try again."
+                        };
+                    }
+
+                    return {
+                        ...conversation,
+                        messages: updatedMessages
+                    };
+                })
+            );
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const createNewChat = () => {
@@ -198,6 +271,7 @@ function Assistant() {
                         onExplain={handleExplain}
                         onClearChat={clearChat}
                     />
+
                     <Chat
                         messages={activeMessages}
                         messagesEndRef={messagesEndRef}
