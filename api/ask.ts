@@ -6,7 +6,7 @@ type Message = {
 type GeminiPart = {
     text?: string;
 };
-
+export const maxDuration = 60;
 export default async function handler(
     request: Request
 ): Promise<Response> {
@@ -82,7 +82,11 @@ export default async function handler(
                     "X-goog-api-key": apiKey
                 },
                 body: JSON.stringify({
-                    contents
+                    contents,
+                    generationConfig: {
+                        maxOutputTokens: 500,
+                        temperature: 0.7
+                    }
                 })
             }
         );
