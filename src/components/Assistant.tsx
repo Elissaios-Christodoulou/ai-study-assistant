@@ -106,124 +106,44 @@ function Assistant() {
             );
         }
 
-        try {
-            const response = await fetch(
-                "http://localhost:5000/ask",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        messages: requestMessages
-                    })
-                }
-            );
+       const assistantText = await response.text();
 
-            if (!response.ok) {
-                throw new Error(
-                    `Server error: ${response.status}`
-                );
-            }
-
-            const reader = response.body?.getReader();
-
-            if (!reader) {
-                throw new Error(
-                    "Response body is missing"
-                );
-            }
-
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } =
-                    await reader.read();
-
-                if (done) {
-                    break;
+        setConversations((prev) =>
+            prev.map((conversation) => {
+                if (
+                    conversation.id !== conversationId
+                ) {
+                    return conversation;
                 }
 
-                const chunk = decoder.decode(value, {
-                    stream: true
-                });
+                const updatedMessages = [
+                    ...conversation.messages
+                ];
 
-                setConversations((prev) =>
-                    prev.map((conversation) => {
-                        if (
-                            conversation.id !== conversationId
-                        ) {
-                            return conversation;
-                        }
+                const lastIndex =
+                    updatedMessages.length - 1;
 
-                        const updatedMessages = [
-                            ...conversation.messages
-                        ];
+                const lastMessage =
+                    updatedMessages[lastIndex];
 
-                        const lastIndex =
-                            updatedMessages.length - 1;
+                if (
+                    !lastMessage ||
+                    lastMessage.role !== "assistant"
+                ) {
+                    return conversation;
+                }
 
-                        const lastMessage =
-                            updatedMessages[lastIndex];
+                updatedMessages[lastIndex] = {
+                    ...lastMessage,
+                    text: assistantText
+                };
 
-                        if (
-                            !lastMessage ||
-                            lastMessage.role !== "assistant"
-                        ) {
-                            return conversation;
-                        }
-
-                        updatedMessages[lastIndex] = {
-                            ...lastMessage,
-                            text: lastMessage.text + chunk
-                        };
-
-                        return {
-                            ...conversation,
-                            messages: updatedMessages
-                        };
-                    })
-                );
-            }
-        } catch (error) {
-            console.error(error);
-
-            setConversations((prev) =>
-                prev.map((conversation) => {
-                    if (
-                        conversation.id !== conversationId
-                    ) {
-                        return conversation;
-                    }
-
-                    const updatedMessages = [
-                        ...conversation.messages
-                    ];
-
-                    const lastIndex =
-                        updatedMessages.length - 1;
-
-                    const lastMessage =
-                        updatedMessages[lastIndex];
-
-                    if (
-                        lastMessage?.role === "assistant"
-                    ) {
-                        updatedMessages[lastIndex] = {
-                            role: "assistant",
-                            text: "Something went wrong. Please try again."
-                        };
-                    }
-
-                    return {
-                        ...conversation,
-                        messages: updatedMessages
-                    };
-                })
-            );
-        } finally {
-            setIsLoading(false);
-        }
+                return {
+                    ...conversation,
+                    messages: updatedMessages
+                };
+            })
+        );
     };
 
     const createNewChat = () => {
