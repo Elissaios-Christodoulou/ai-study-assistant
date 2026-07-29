@@ -1,167 +1,302 @@
-import { useState, useEffect, useRef } from "react";
-const explanations = {
-    react: {
-        title: "React",
-        text: "React is a JavaScript library for building user interfaces.",
-        example: "A component is a reusable piece of UI.",
-        points: [
-            "Components",
-            "Props",
-            "State"
-        ]
-    },
+import { useEffect, useRef, useState } from "react";
+import Sidebar from "./Sidebar";
+import type { Conversation, Message as MessageType } from "../types/chat";
+import ChatInput from "./ChatInput";
+import Chat from "./Chat";
 
-    python: {
-        title: "Python",
-        text: "Python is a programming language known for its simplicity.",
-        example: "You can use Python for web development and AI.",
-        points: [
-            "Simple syntax",
-            "Large ecosystem",
-            "AI and Machine Learning"
-        ]
-    }
-};
-type Message = {
-    role: "user" | "assistant";
-    text: string;
-};
-type Explanation = {
-    title: string;
-    text: string;
-    example: string;
-    points: string[];
-};
 function Assistant() {
-
     const [topic, setTopic] = useState("");
-
-    const fallbackAnswer = {
-        title: "Topic not found",
-        text: "Sorry, I don't have information about this topic yet.",
-        example: "Try another topic like React or Python.",
-        points: [
-            "Available topic: React",
-            "Available topic: Python"
-        ]
-    };
-
-
-    const [explanation, setExplanation] = useState<Explanation | null>(null);
-
     const [isLoading, setIsLoading] = useState(false);
+    const [conversations, setConversations] = useState<Conversation[]>(() => {
+        const savedConversations = localStorage.getItem("conversations");
 
+        if (!savedConversations) {
+            return [];
+        }
 
-    const [messages, setMessages] = useState<Message[]>([]);
+        return JSON.parse(savedConversations);
+    });
+    useEffect(() => {
+        localStorage.setItem(
+            "conversations",
+            JSON.stringify(conversations)
+        );
+    }, [conversations]);
+
+    const [activeConversationId, setActiveConversationId] =
+        useState<number | null>(null);
 
     const [hasStartedChat, setHasStartedChat] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const activeConversation = conversations.find(
+        (conversation) => conversation.id === activeConversationId
+    );
+
+    const activeMessages = activeConversation?.messages ?? [];
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({
             behavior: "smooth"
         });
-    }, [messages]);
+    }, [conversations, activeConversationId]);
 
     const handleExplain = async () => {
-        if (topic.trim() === "") { return };
+        const cleanTopic = topic.trim();
+
+        if (cleanTopic === "" || isLoading) {
+            return;
+        }
+
+        const userMessage: MessageType = {
+            role: "user",
+            text: cleanTopic
+        };
+
+        const assistantMessage: Message = {
+            role: "assistant",
+            text: ""
+        };
+
+        const requestMessages: MessageType[] = [
+            ...activeMessages,
+            userMessage
+        ];
+
+        const conversationId =
+            activeConversationId ?? Date.now();
 
         setIsLoading(true);
-
         setHasStartedChat(true);
+        setTopic("");
 
-        setMessages((prev) => [
-            ...prev,
-            {
-                role: "user",
-                text: topic
-            }
-        ]);
-        
-            try {
-                const response = await fetch("http://localhost:5000/ask", {
+        if (activeConversationId === null) {
+            const newConversation: Conversation = {
+                id: conversationId,
+                title:
+                    cleanTopic.length > 30
+                        ? cleanTopic.substring(0, 30) + "..."
+                        : cleanTopic,
+                messages: [
+                    ...requestMessages,
+                    assistantMessage
+                ]
+            };
+
+            setConversations((prev) => [
+                ...prev,
+                newConversation
+            ]);
+
+            setActiveConversationId(conversationId);
+        } else {
+            setConversations((prev) =>
+                prev.map((conversation) =>
+                    conversation.id === conversationId
+                        ? {
+                              ...conversation,
+                              messages: [
+                                  ...requestMessages,
+                                  assistantMessage
+                              ]
+                          }
+                        : conversation
+                )
+            );
+        }
+
+        try {
+            const response = await fetch(
+                "http://localhost:5000/ask",
+                {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
+                        "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        message: topic
-                    }),
-                });
-
-                const data = await response.json();
-
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        role: "assistant",
-                        text: data.answer
-                    }
-                ]);
-
-            } catch (error) {
-                console.log(error);
-                setMessages((prev) => [
-                ...prev,
-                {
-                    role: "assistant",
-                    text: "Something went wrong. Please try again."
+                        messages: requestMessages
+                    })
                 }
-            ]);
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Server error: ${response.status}`
+                );
             }
 
+            const reader = response.body?.getReader();
+
+            if (!reader) {
+                throw new Error(
+                    "Response body is missing"
+                );
+            }
+
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } =
+                    await reader.read();
+
+                if (done) {
+                    break;
+                }
+
+                const chunk = decoder.decode(value, {
+                    stream: true
+                });
+
+                setConversations((prev) =>
+                    prev.map((conversation) => {
+                        if (
+                            conversation.id !== conversationId
+                        ) {
+                            return conversation;
+                        }
+
+                        const updatedMessages = [
+                            ...conversation.messages
+                        ];
+
+                        const lastIndex =
+                            updatedMessages.length - 1;
+
+                        const lastMessage =
+                            updatedMessages[lastIndex];
+
+                        if (
+                            !lastMessage ||
+                            lastMessage.role !== "assistant"
+                        ) {
+                            return conversation;
+                        }
+
+                        updatedMessages[lastIndex] = {
+                            ...lastMessage,
+                            text: lastMessage.text + chunk
+                        };
+
+                        return {
+                            ...conversation,
+                            messages: updatedMessages
+                        };
+                    })
+                );
+            }
+        } catch (error) {
+            console.error(error);
+
+            setConversations((prev) =>
+                prev.map((conversation) => {
+                    if (
+                        conversation.id !== conversationId
+                    ) {
+                        return conversation;
+                    }
+
+                    const updatedMessages = [
+                        ...conversation.messages
+                    ];
+
+                    const lastIndex =
+                        updatedMessages.length - 1;
+
+                    const lastMessage =
+                        updatedMessages[lastIndex];
+
+                    if (
+                        lastMessage?.role === "assistant"
+                    ) {
+                        updatedMessages[lastIndex] = {
+                            role: "assistant",
+                            text: "Something went wrong. Please try again."
+                        };
+                    }
+
+                    return {
+                        ...conversation,
+                        messages: updatedMessages
+                    };
+                })
+            );
+        } finally {
             setIsLoading(false);
+        }
+    };
 
-    
-
-    }
-    const clearChat = () => {
-        setMessages([]);
-        setExplanation(null);
+    const createNewChat = () => {
+        setActiveConversationId(null);
+        setTopic("");
         setHasStartedChat(false);
-    }; 
+    };
+
+    const clearChat = () => {
+        if (activeConversationId === null) {
+            return;
+        }
+
+        setConversations((prev) =>
+            prev.map((conversation) =>
+                conversation.id === activeConversationId
+                    ? {
+                          ...conversation,
+                          messages: []
+                      }
+                    : conversation
+            )
+        );
+
+        setTopic("");
+        setHasStartedChat(false);
+    };
+
+    const selectConversation = (id: number) => {
+        setActiveConversationId(id);
+        setHasStartedChat(true);
+    };
+
     return (
-        <section id="assistant" className="assistant">
-            <h2>AI Study Assistant</h2>
+        <section
+            id="assistant"
+            className="assistant"
+        >
+            <div className="assistant-layout">
+                <div className="chat-container">
+                    <h2>AI Study Assistant</h2>
 
-            <p className="assistant-description">Ask anything about a topic</p>
+                    <p className="assistant-description">
+                        Ask anything about a topic
+                    </p>
 
-            <div className={hasStartedChat ? "chat-input bottom" : "chat-input"}>
-
-                <input
-                    placeholder="Type a topic..."
-                    value={topic}
-                    onChange={(event) => setTopic(event.target.value)}
-                />
-
-                <div className="assistant-buttons">
-
-                    <button onClick={handleExplain}>
-                        {isLoading ? "Thinking..." : "Explain"}
-                    </button>
-
-                    <button onClick={clearChat}>
-                        Clear Chat
-                    </button>
-
+                    <ChatInput
+                        topic={topic}
+                        isLoading={isLoading}
+                        hasStartedChat={hasStartedChat}
+                        onTopicChange={setTopic}
+                        onExplain={handleExplain}
+                        onClearChat={clearChat}
+                    />
+                    <Chat
+                        messages={activeMessages}
+                        messagesEndRef={messagesEndRef}
+                    />
                 </div>
 
+                <Sidebar
+                    conversations={conversations}
+                    activeConversationId={
+                        activeConversationId
+                    }
+                    onSelectConversation={
+                        selectConversation
+                    }
+                    onNewChat={createNewChat}
+                />
             </div>
-
-            <div className="messages">
-                {messages.map((message, index) => (
-                    <div key={index} className={`message ${message.role}`}>
-                        {message.text}
-                    </div>
-
-                ))}
-                <div ref={messagesEndRef}></div>
-            </div>
-            
         </section>
-    )
-
+    );
 }
 
 export default Assistant;
