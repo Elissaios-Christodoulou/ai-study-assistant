@@ -64,10 +64,7 @@ export async function askGemini(
             body: JSON.stringify({
                 contents,
                 generationConfig: {
-                    maxOutputTokens: 2048,
-                    thinkingConfig: {
-                        thinkingBudget: "minimal"
-                    }
+                    maxOutputTokens: 2048
                 }
             })
         }
