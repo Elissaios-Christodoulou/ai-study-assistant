@@ -180,3 +180,17 @@ npm run build
 ## 👤 Author
 
 Developed by [Elissaios Christodoulou](https://github.com/Elissaios-Christodoulou) as a learning project focused on React, TypeScript, API integration and AI-powered web development.
+## 📸 Screenshots
+
+### Home Page
+
+![AI Study Assistant Home Page]<img width="2355" height="1298" alt="HOME" src="https://github.com/user-attachments/assets/a884540a-8a23-45d5-be4b-89f308ca5366" />
+
+
+### AI Chat
+
+![AI Study Assistant Chat](./screenshots/ai-chat.png)
+
+### Mobile View
+
+![AI Study Assistant Mobile View](./screenshots/mobile-view.png)
