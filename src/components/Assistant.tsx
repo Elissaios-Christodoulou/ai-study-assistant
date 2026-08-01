@@ -133,9 +133,35 @@ function Assistant() {
             );
 
             if (!response.ok) {
-                throw new Error(
-                    `Server error: ${response.status}`
-                );
+                let errorMessage = `Server error: ${response.status}`;
+                const contentType =
+                    response.headers.get("content-type") ??
+                    "";
+
+                if (
+                    contentType.includes("application/json")
+                ) {
+                    try {
+                        const data =
+                            (await response.json()) as {
+                                error?: string;
+                            };
+
+                        if (data.error) {
+                            errorMessage = data.error;
+                        }
+                    } catch {
+                        /* use default message */
+                    }
+                } else {
+                    const text = await response.text();
+
+                    if (text.trim()) {
+                        errorMessage = text;
+                    }
+                }
+
+                throw new Error(errorMessage);
             }
 
             const assistantText =
@@ -201,10 +227,14 @@ function Assistant() {
                     if (
                         lastMessage?.role === "assistant"
                     ) {
+                        const message =
+                            error instanceof Error
+                                ? error.message
+                                : "Something went wrong. Please try again.";
+
                         updatedMessages[lastIndex] = {
                             role: "assistant",
-                            text:
-                                "Something went wrong. Please try again."
+                            text: message
                         };
                     }
 

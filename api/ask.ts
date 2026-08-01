@@ -1,11 +1,7 @@
-type ChatMessage = {
-    role: "user" | "assistant";
-    text: string;
-};
-
-type GeminiPart = {
-    text?: string;
-};
+import {
+    askGemini,
+    type ChatMessage
+} from "./geminiAsk";
 
 export const maxDuration = 60;
 
@@ -24,108 +20,25 @@ export default {
         }
 
         try {
-            const apiKey = process.env.GEMINI_API_KEY;
-
-            if (!apiKey) {
-                return Response.json(
-                    { error: "GEMINI_API_KEY is missing" },
-                    { status: 500 }
-                );
-            }
-
             const body = await request.json();
             const messages: ChatMessage[] = body.messages;
 
-            if (
-                !Array.isArray(messages) ||
-                messages.length === 0
-            ) {
-                return Response.json(
-                    { error: "Messages are required" },
-                    { status: 400 }
-                );
-            }
-
-            const contents = messages.map((message) => ({
-                role:
-                    message.role === "assistant"
-                        ? "model"
-                        : "user",
-                parts: [
-                    {
-                        text: message.text
-                    }
-                ]
-            }));
-
-            const geminiResponse = await fetch(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-goog-api-key": apiKey
-                    },
-                    body: JSON.stringify({
-                        contents,
-                        generationConfig: {
-                            maxOutputTokens: 2048,
-                            temperature: 0.7,
-                            thinkingConfig: {
-                                thinkingBudget: 0
-                            }
-                        }
-                    })
-                }
+            const result = await askGemini(
+                messages,
+                process.env.GEMINI_API_KEY
             );
 
-            const data = await geminiResponse.json();
-
-            if (!geminiResponse.ok) {
-                console.error("Gemini error:", data);
-
+            if (!result.ok) {
                 return Response.json(
-                    {
-                        error:
-                            data?.error?.message ??
-                            "Gemini request failed"
-                    },
-                    {
-                        status: geminiResponse.status
-                    }
+                    { error: result.error },
+                    { status: result.status }
                 );
             }
 
-            const parts: GeminiPart[] =
-                data.candidates?.[0]?.content?.parts ?? [];
-
-            const answer = parts
-                .map((part) => part.text ?? "")
-                .join("")
-                .trim();
-
-            if (!answer) {
-                console.error(
-                    "Empty Gemini response:",
-                    JSON.stringify(data)
-                );
-
-                return Response.json(
-                    {
-                        error:
-                            "Gemini returned an empty response"
-                    },
-                    {
-                        status: 502
-                    }
-                );
-            }
-
-            return new Response(answer, {
+            return new Response(result.answer, {
                 status: 200,
                 headers: {
-                    "Content-Type":
-                        "text/plain; charset=utf-8"
+                    "Content-Type": "text/plain; charset=utf-8"
                 }
             });
         } catch (error) {
