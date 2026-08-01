@@ -1,4 +1,16 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type {
+    VercelRequest,
+    VercelResponse
+} from "@vercel/node";
+
+type Message = {
+    role: "user" | "assistant";
+    text: string;
+};
+
+type GeminiPart = {
+    text?: string;
+};
 
 export default async function handler(
     req: VercelRequest,
@@ -14,14 +26,23 @@ export default async function handler(
 
     if (!apiKey) {
         return res.status(500).json({
-            error: "Missing API key"
+            error: "GEMINI_API_KEY is missing"
         });
     }
 
     try {
-        const { messages } = req.body;
+        const messages: Message[] = req.body?.messages;
 
-        const contents = messages.map((message: any) => ({
+        if (
+            !Array.isArray(messages) ||
+            messages.length === 0
+        ) {
+            return res.status(400).json({
+                error: "Messages are required"
+            });
+        }
+
+        const contents = messages.map((message) => ({
             role:
                 message.role === "assistant"
                     ? "model"
@@ -33,7 +54,7 @@ export default async function handler(
             ]
         }));
 
-        const response = await fetch(
+        const geminiResponse = await fetch(
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
             {
                 method: "POST",
@@ -42,21 +63,55 @@ export default async function handler(
                     "X-goog-api-key": apiKey
                 },
                 body: JSON.stringify({
-                    contents
+                    contents,
+                    generationConfig: {
+                        maxOutputTokens: 500,
+                        temperature: 0.7
+                    }
                 })
             }
         );
 
-        const data = await response.json();
+        const data = await geminiResponse.json();
 
-        const answer =
-            data.candidates?.[0]?.content?.parts
-                ?.map((part: any) => part.text)
-                .join("") ?? "";
+        if (!geminiResponse.ok) {
+            console.error("Gemini error:", data);
 
-        return res.status(200).send(answer);
-    } catch (err) {
-        console.error(err);
+            return res.status(geminiResponse.status).json({
+                error:
+                    data?.error?.message ??
+                    "Gemini request failed"
+            });
+        }
+
+        const parts: GeminiPart[] =
+            data.candidates?.[0]?.content?.parts ?? [];
+
+        const answer = parts
+            .map((part) => part.text ?? "")
+            .join("")
+            .trim();
+
+        if (!answer) {
+            console.error(
+                "Empty Gemini response:",
+                JSON.stringify(data)
+            );
+
+            return res.status(502).json({
+                error: "Gemini returned an empty response"
+            });
+        }
+
+        return res
+            .status(200)
+            .setHeader(
+                "Content-Type",
+                "text/plain; charset=utf-8"
+            )
+            .send(answer);
+    } catch (error) {
+        console.error("API error:", error);
 
         return res.status(500).json({
             error: "Something went wrong"
