@@ -1,8 +1,3 @@
-import type {
-    VercelRequest,
-    VercelResponse
-} from "@vercel/node";
-
 type Message = {
     role: "user" | "assistant";
     text: string;
@@ -12,41 +7,29 @@ type GeminiPart = {
     text?: string;
 };
 
-export default async function handler(
-    req: VercelRequest,
-    res: VercelResponse
-) {
-    if (req.method !== "POST") {
-        return res.status(405).json({
-            error: "Method not allowed"
-        });
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-        return res.status(500).json({
-            error: "GEMINI_API_KEY is missing"
-        });
-    }
-
+export async function POST(request: Request): Promise<Response> {
     try {
-        const messages: Message[] = req.body?.messages;
+        const apiKey = process.env.GEMINI_API_KEY;
 
-        if (
-            !Array.isArray(messages) ||
-            messages.length === 0
-        ) {
-            return res.status(400).json({
-                error: "Messages are required"
-            });
+        if (!apiKey) {
+            return Response.json(
+                { error: "GEMINI_API_KEY is missing" },
+                { status: 500 }
+            );
+        }
+
+        const body = await request.json();
+        const messages: Message[] = body.messages;
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+            return Response.json(
+                { error: "Messages are required" },
+                { status: 400 }
+            );
         }
 
         const contents = messages.map((message) => ({
-            role:
-                message.role === "assistant"
-                    ? "model"
-                    : "user",
+            role: message.role === "assistant" ? "model" : "user",
             parts: [
                 {
                     text: message.text
@@ -60,13 +43,12 @@ export default async function handler(
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-goog-api-key": apiKey
+                    "x-goog-api-key": apiKey
                 },
                 body: JSON.stringify({
                     contents,
                     generationConfig: {
-                        maxOutputTokens: 500,
-                        temperature: 0.7
+                        maxOutputTokens: 500
                     }
                 })
             }
@@ -77,11 +59,16 @@ export default async function handler(
         if (!geminiResponse.ok) {
             console.error("Gemini error:", data);
 
-            return res.status(geminiResponse.status).json({
-                error:
-                    data?.error?.message ??
-                    "Gemini request failed"
-            });
+            return Response.json(
+                {
+                    error:
+                        data?.error?.message ??
+                        "Gemini request failed"
+                },
+                {
+                    status: geminiResponse.status
+                }
+            );
         }
 
         const parts: GeminiPart[] =
@@ -93,28 +80,26 @@ export default async function handler(
             .trim();
 
         if (!answer) {
-            console.error(
-                "Empty Gemini response:",
-                JSON.stringify(data)
-            );
+            console.error("Empty Gemini response:", data);
 
-            return res.status(502).json({
-                error: "Gemini returned an empty response"
-            });
+            return Response.json(
+                { error: "Gemini returned an empty response" },
+                { status: 502 }
+            );
         }
 
-        return res
-            .status(200)
-            .setHeader(
-                "Content-Type",
-                "text/plain; charset=utf-8"
-            )
-            .send(answer);
+        return new Response(answer, {
+            status: 200,
+            headers: {
+                "Content-Type": "text/plain; charset=utf-8"
+            }
+        });
     } catch (error) {
         console.error("API error:", error);
 
-        return res.status(500).json({
-            error: "Something went wrong"
-        });
+        return Response.json(
+            { error: "Something went wrong" },
+            { status: 500 }
+        );
     }
 }
