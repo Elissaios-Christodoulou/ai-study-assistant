@@ -1,3 +1,5 @@
+import { env } from "node:process";
+
 export type ChatMessage = {
     role: "user" | "assistant";
     text: string;
@@ -48,7 +50,7 @@ export async function askGemini(
     }
 
     const model =
-        process.env.GEMINI_MODEL?.trim() ||
+        env.GEMINI_MODEL?.trim() ||
         "gemini-2.5-flash-lite";
 
     const geminiResponse = await fetch(

@@ -1,7 +1,9 @@
+import { env } from "node:process";
+
 import {
     askGemini,
     type ChatMessage
-} from "./geminiAsk";
+} from "./geminiAsk.js";
 
 export const maxDuration = 60;
 
@@ -25,7 +27,7 @@ export default {
 
             const result = await askGemini(
                 messages,
-                process.env.GEMINI_API_KEY
+                env.GEMINI_API_KEY
             );
 
             if (!result.ok) {
