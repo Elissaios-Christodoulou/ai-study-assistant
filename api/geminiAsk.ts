@@ -51,7 +51,7 @@ export async function askGemini(
 
     const model =
         env.GEMINI_MODEL?.trim() ||
-        "gemini-2.5-flash-lite";
+        "gemini-3.5-flash-lite";
 
     const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -65,9 +65,8 @@ export async function askGemini(
                 contents,
                 generationConfig: {
                     maxOutputTokens: 2048,
-                    temperature: 0.7,
                     thinkingConfig: {
-                        thinkingBudget: 0
+                        thinkingBudget: "minimal"
                     }
                 }
             })
