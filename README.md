@@ -192,13 +192,13 @@ Developed by [Elissaios Christodoulou](https://github.com/Elissaios-Christodoulo
 
 ### AI Chat
 
-![AI Study Assistant Chat](./screenshots/ai-chat.png)<img width="2376" height="1296" alt="Screenshot 2026-08-01 171227" src="https://github.com/user-attachments/assets/0e8fbd0c-3a37-4a63-9534-079bd1921bdf" />
+![AI Study Assistant Chat]<img width="2376" height="1296" alt="Screenshot 2026-08-01 171227" src="https://github.com/user-attachments/assets/0e8fbd0c-3a37-4a63-9534-079bd1921bdf" />
 <img width="2377" height="1296" alt="CHAT" src="https://github.com/user-attachments/assets/7a8c06c3-2040-4063-a120-0828c5d9abcb" />
 
 
 ### Mobile View
 
-![AI Study Assistant Mobile View](./screenshots/mobile-view.png)<img width="1160" height="1256" alt="MOBILE4" src="https://github.com/user-attachments/assets/5cb5f4f5-5424-4b95-b7af-07a52adad476" />
+![AI Study Assistant Mobile View]<img width="1160" height="1256" alt="MOBILE4" src="https://github.com/user-attachments/assets/5cb5f4f5-5424-4b95-b7af-07a52adad476" />
 <img width="1160" height="1299" alt="MOBILE3" src="https://github.com/user-attachments/assets/42de6db7-7f48-430b-906d-e171e81502a3" />
 <img width="1162" height="1300" alt="MOBILE2" src="https://github.com/user-attachments/assets/45a2292e-ca02-4d06-a775-515df60aae2c" />
 <img width="1160" height="1296" alt="MOBILE1" src="https://github.com/user-attachments/assets/778e7459-51a1-4b3d-9bc7-146ce6bdcd30" />
