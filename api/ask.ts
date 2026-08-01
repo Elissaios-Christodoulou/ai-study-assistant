@@ -69,8 +69,11 @@ export default {
                     body: JSON.stringify({
                         contents,
                         generationConfig: {
-                            maxOutputTokens: 500,
-                            temperature: 0.7
+                            maxOutputTokens: 2048,
+                            temperature: 0.7,
+                            thinkingConfig: {
+                                thinkingBudget: 0
+                            }
                         }
                     })
                 }
